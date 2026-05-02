@@ -5,6 +5,10 @@ from qiskit_aer import AerSimulator
 from datetime import datetime
 from qiskit.qasm3 import dumps
 
+import os
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.fernet import Fernet
 
 n_qubits = 10
 tmps_creation= datetime.now().strftime("%d/%m/%Y_%H:%M:%S")
@@ -37,8 +41,51 @@ circuit_data = {
 }
 
 fich_plain = f"circuit_data_{id_session}.json"
-
 with open(fich_plain, "w") as f:
     json.dump(circuit_data, f, indent=2)
-# --- Generatiion des 2 fichiers encryptés (ssl pour l'instant puis pqc plus tard)
 
+# --- Generatiion des 2 fichiers encryptés (ssl pour l'instant puis pqc plus tard)
+#lire les 2 clés
+with open("Alice_pubK.pem", "rb") as f:
+    alice_public_key = serialization.load_pem_public_key(f.read())
+with open("Bob_pubK.pem", "rb") as f:
+    bob_public_key = serialization.load_pem_public_key(f.read())
+
+with open(fich_plain, "rb") as f:
+    plaintext_data = f.read()
+
+#generer une clé aes et chiffrer le file avec (classique pour l'instant)
+symmetric_key = Fernet.generate_key()
+cipher = Fernet(symmetric_key)
+encrypted_data = cipher.encrypt(plaintext_data)
+
+encrypted_file = f"circuit_encrypted_{id_session}.bin"
+with open(encrypted_file, "wb") as f:
+    f.write(encrypted_data)
+
+#chiffrage de la clé avec les clés pub de a et b
+alice_encrypted_key = alice_public_key.encrypt(
+    symmetric_key,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+
+with open(f"alice_symkey_{id_session}.bin", "wb") as f:
+    f.write(alice_encrypted_key)
+bob_encrypted_key = bob_public_key.encrypt(
+    symmetric_key,
+    padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+)
+
+with open(f"bob_symkey_{id_session}.bin", "wb") as f:
+    f.write(bob_encrypted_key)
+
+os.remove(fich_plain)
+print("Plaintext supprimé.")
