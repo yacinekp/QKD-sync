@@ -4,4 +4,5 @@ This solution can be used locally between two terminals as well as between two v
 
 1. In order to establish the communication, the communicating parties must be connected to the same network.
 2. In the reciever machine, edit the "HOST" value of the "circuit_recieve.py" file to match the sender's ip address. You can obtain the address using tools such as nmap or simply via the "ifconfig" command.
-3. Set the 
+3. Set the "HOST" value of the "circuit_generator.py" of the host to "0.0.0.0"
+4. launch "circuit_generator.py" from the host then "circuit_recieve.py" from the client to establish the connection
